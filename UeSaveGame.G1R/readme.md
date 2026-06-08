@@ -28,7 +28,7 @@ won't open them).
 **Get it (pick one):**
 
 - **Download** the prebuilt `UeSaveGame.G1R-…-win-x64.zip` from the
-  [Releases page](../../releases) and unzip it. No .NET install needed.
+  [Releases page](../../../releases) and unzip it. No .NET install needed.
 - **Or build from source** with the .NET 8 SDK:
   `dotnet build UeSaveGame.G1R/UeSaveGame.G1R.csproj -c Release`.
 
