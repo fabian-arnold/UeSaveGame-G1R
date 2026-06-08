@@ -3,3 +3,10 @@
 **/*.user
 /*/bin/**
 /*/obj/**
+
+# Oodle runtime is proprietary and must never be committed/redistributed
+oo2core_*.dll
+
+# Save files and extracted/decompressed save data (personal, often large)
+*.sav
+*.decompressed.bin

@@ -97,6 +97,12 @@ namespace UeSaveGame.Json.PropertySerializers
 				writer.WriteEndArray();
 			}
 
+			if (arrayProperty.RawData is not null)
+			{
+				writer.WritePropertyName(nameof(ArrayProperty.RawData));
+				writer.WriteValue(Convert.ToBase64String(arrayProperty.RawData));
+			}
+
 			writer.WriteEndObject();
 		}
 
@@ -188,6 +194,9 @@ namespace UeSaveGame.Json.PropertySerializers
 							{
 								valueToken = JToken.ReadFrom(reader);
 							}
+							break;
+						case nameof(ArrayProperty.RawData):
+							arrayProperty.RawData = Convert.FromBase64String(reader.ReadAsString()!);
 							break;
 					}
 				}

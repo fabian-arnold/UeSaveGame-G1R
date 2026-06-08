@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>x64</Platforms>
+    <Platform>x64</Platform>
+    <AssemblyName>UeSaveGame.G1R</AssemblyName>
+    <RootNamespace>UeSaveGame.G1R</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <ProductName>UeSaveGame.G1R</ProductName>
+    <Description>Console tool for reading, editing and repacking Gothic 1 Remake (G1R) save files.</Description>
+    <Authors>Crystal Ferrai</Authors>
+    <Copyright>Copyright © 2025 Crystal Ferrai</Copyright>
+    <Version>0.1.0.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UeSaveGame\UeSaveGame.csproj" />
+    <ProjectReference Include="..\UeSaveGame.Json\UeSaveGame.Json.csproj" />
+  </ItemGroup>
+
+  <!-- Oodle is not redistributable. If a copy sits in the repo root, copy it next to the
+       executable so the tool can find it. Otherwise set the OODLE_PATH env var at runtime. -->
+  <ItemGroup Condition="Exists('$(MSBuildProjectDirectory)\..\oo2core_9_win64.dll')">
+    <None Include="..\oo2core_9_win64.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

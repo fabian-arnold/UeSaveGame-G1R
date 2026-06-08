@@ -1,0 +1,75 @@
+name: Release UeSaveGame.G1R
+
+# Builds a self-contained Windows x64 executable of the G1R save tool and, when triggered by
+# a version tag (e.g. v0.1.0), publishes it as a GitHub Release. Manual runs upload the same
+# zip as a workflow artifact for testing.
+#
+# NOTE: The Oodle runtime (oo2core_*.dll) is proprietary and is never included in releases.
+# Users supply it from their own Gothic install.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label for a manual build (e.g. v0.1.0-test)'
+        required: false
+        default: 'manual'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/*') { $v = '${{ github.ref_name }}' }
+          else { $v = '${{ github.event.inputs.version }}' }
+          "version=$v" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Publish (self-contained, single file, no trimming)
+        shell: pwsh
+        run: >
+          dotnet publish UeSaveGame.G1R/UeSaveGame.G1R.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:DebugType=none
+          -o publish
+
+      - name: Package
+        id: pkg
+        shell: pwsh
+        run: |
+          # Oodle is not redistributable - make absolutely sure it is never shipped.
+          Remove-Item publish/oo2core_*.dll -ErrorAction SilentlyContinue
+          Remove-Item publish/*.pdb -ErrorAction SilentlyContinue
+          Copy-Item UeSaveGame.G1R/readme.md   publish/
+          $asset = "UeSaveGame.G1R-${{ steps.ver.outputs.version }}-win-x64.zip"
+          Compress-Archive -Path publish/* -DestinationPath $asset -Force
+          "asset=$asset" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: UeSaveGame.G1R-win-x64
+          path: ${{ steps.pkg.outputs.asset }}
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.pkg.outputs.asset }}
+          generate_release_notes: true

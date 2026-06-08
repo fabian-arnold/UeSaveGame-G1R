@@ -22,6 +22,14 @@ namespace UeSaveGame.PropertyTypes
 
 		public FPropertyTypeName? ItemType { get; set; }
 
+		/// <summary>
+		/// Raw bytes of the element region for arrays whose elements carry extra inline data that
+		/// the standard per-element readers do not consume (e.g. arrays of instanced/export objects,
+		/// where each element is a class path followed by an inline property list). When set, the
+		/// array is written back verbatim from these bytes to guarantee a lossless round trip.
+		/// </summary>
+		public byte[]? RawData { get; set; }
+
 		public ArrayProperty(FString name)
 			: base(name)
 		{
@@ -65,9 +73,24 @@ namespace UeSaveGame.PropertyTypes
 
 			int count = reader.ReadInt32();
 
+			long elementStart = reader.BaseStream.CanSeek ? reader.BaseStream.Position : -1;
+
 			Array? data;
 			StructPrototype = ArraySerializationHelper.Deserialize(reader, count, size - 4, ItemType, packageVersion, out data);
 			Value = data;
+
+			// If the standard readers did not consume exactly the declared element region, the
+			// elements carry extra inline data (e.g. instanced/export objects). Capture the region
+			// verbatim so it can be written back losslessly, and realign the stream.
+			if (elementStart >= 0 && size >= 4)
+			{
+				long consumed = reader.BaseStream.Position - elementStart;
+				if (consumed != size - 4)
+				{
+					reader.BaseStream.Seek(elementStart, SeekOrigin.Begin);
+					RawData = reader.ReadBytes(size - 4);
+				}
+			}
 		}
 
 		protected internal override void SerializeHeader(BinaryWriter writer, PackageVersion packageVersion)
@@ -82,6 +105,14 @@ namespace UeSaveGame.PropertyTypes
 		{
 			if (Value == null) throw new InvalidOperationException("Instance is not valid for serialization");
 			if (ItemType == null) throw new InvalidOperationException("Cannot serialize array with unknown item type");
+
+			// Arrays captured verbatim (inline object data) are written straight back.
+			if (RawData != null)
+			{
+				writer.Write(Value.Length);
+				writer.Write(RawData);
+				return 4 + RawData.Length;
+			}
 
 			int size = 4;
 			writer.Write(Value.Length);
